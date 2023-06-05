@@ -31,9 +31,8 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
-// Using AXP192
-#define XPOWERS_CHIP_AXP192
-
+// Using AXP2101
+#define  XPOWERS_CHIP_AXP2101
 #include "XPowersLib.h"
 #include <Arduino.h>
 

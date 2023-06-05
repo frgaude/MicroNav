@@ -92,7 +92,7 @@ Power::~Power()
 
 bool Power::Init()
 {
-    if (!AXPDriver.begin(Wire, AXP192_SLAVE_ADDRESS, PMU_I2C_SDA, PMU_I2C_SCL))
+    if (!AXPDriver.begin(Wire, AXP2101_SLAVE_ADDRESS, PMU_I2C_SDA, PMU_I2C_SCL))
     {
         return false;
     }
@@ -101,18 +101,31 @@ bool Power::Init()
     firstBatteryQuery = true;
 
     AXPDriver.setSysPowerDownVoltage(2900);
-    AXPDriver.setVbusVoltageLimit(XPOWERS_AXP192_VBUS_VOL_LIM_4V5);
-    AXPDriver.setVbusCurrentLimit(XPOWERS_AXP192_VBUS_CUR_LIM_OFF);
-    AXPDriver.setVbusCurrentLimit(XPOWERS_AXP192_VBUS_CUR_LIM_OFF);
 
-    AXPDriver.enableLDO2();        // RF
-    AXPDriver.enableLDO3();        // GPS
-    AXPDriver.disableDC2();        // Unused
-    AXPDriver.enableExternalPin(); // ?
-    AXPDriver.enableDC1();         // OLED
+    // Set the minimum common working voltage of the PMU VBUS input,
+    // below this value will turn off the PMU
+    AXPDriver.setVbusVoltageLimit(XPOWERS_AXP2101_VBUS_VOL_LIM_4V36);
 
-    AXPDriver.setPowerKeyLongPressOnTime(XPOWERS_AXP192_LONGPRESS_1000MS);
-    AXPDriver.setPowerKeyPressOffTime(XPOWERS_AXP192_POWEROFF_8S);
+    // Set the maximum current of the PMU VBUS input,
+    // higher than this value will turn off the PMU
+    AXPDriver.setVbusCurrentLimit(XPOWERS_AXP2101_VBUS_CUR_LIM_1500MA);
+
+    // DCDC1 1500~3400mV, IMAX=2A
+    AXPDriver.setDC1Voltage(3300); // ESP32,  AXP2101 power-on value: 3300
+
+    // ALDO 500~3500V, 100mV/step, IMAX=300mA
+    AXPDriver.setButtonBatteryChargeVoltage(3100); // GNSS battery
+
+    AXPDriver.setALDO2Voltage(3300); // LoRa, AXP2101 power-on value: 2800
+    AXPDriver.setALDO3Voltage(3300); // GPS,  AXP2101 power-on value: 3300
+
+    AXPDriver.enableButtonBatteryCharge();
+
+    AXPDriver.enableALDO2();
+    AXPDriver.enableALDO3();
+
+    // FGA Hack AXPDriver.setPowerKeyLongPressOnTime(XPOWERS_AXP192_LONGPRESS_1000MS);
+    AXPDriver.setPowerKeyPressOffTime(XPOWERS_POWEROFF_8S);
     AXPDriver.setPowerKeyPressOnTime(XPOWERS_POWERON_128MS);
 
     AXPDriver.disableTSPinMeasure();
@@ -124,25 +137,27 @@ bool Power::Init()
     AXPDriver.enableBattVoltageMeasure();
     AXPDriver.enableSystemVoltageMeasure();
 
+    // FGA SoftRF AXPDriver.setChargingLedMode(XPOWERS_CHG_LED_ON);
     AXPDriver.setChargingLedMode(XPOWERS_CHG_LED_CTRL_CHG);
 
-    AXPDriver.setChargerConstantCurr(XPOWERS_AXP192_CHG_CUR_280MA);
-    AXPDriver.setChargerTerminationCurr(XPOWERS_AXP192_CHG_ITERM_LESS_10_PERCENT);
-    AXPDriver.setChargeTargetVoltage(XPOWERS_AXP192_CHG_VOL_4V2);
+    AXPDriver.setChargerConstantCurr(XPOWERS_AXP2101_CHG_CUR_500MA);
+    AXPDriver.setChargerTerminationCurr(XPOWERS_AXP2101_CHG_ITERM_25MA);
+    AXPDriver.setChargeTargetVoltage(XPOWERS_AXP2101_CHG_VOL_4V2);
 
     // Set the timing after one minute, the isWdtExpireIrq will be triggered in the loop interrupt function
-    AXPDriver.setTimerout(1);
+    // FGA hack AXPDriver.setTimerout(1);
+    // FGA comment replace by watchdog?
 
     UpdateStatus();
 
     powerEventGroup = xEventGroupCreate();
     xTaskCreate(StaticProcessingTask, "PowerTask", 16384, (void *)this, 6, &powerTaskHandle);
 
-    AXPDriver.disableIRQ(XPOWERS_AXP192_ALL_IRQ);
+    AXPDriver.disableIRQ(XPOWERS_AXP2101_ALL_IRQ);
     AXPDriver.clearIrqStatus();
-    AXPDriver.enableIRQ(XPOWERS_AXP192_PKEY_SHORT_IRQ | XPOWERS_AXP192_PKEY_LONG_IRQ);
-    pinMode(PMU_IRQ, INPUT);
-    attachInterrupt(PMU_IRQ, StaticIrqCallback, FALLING);
+    AXPDriver.enableIRQ(XPOWERS_AXP2101_PKEY_LONG_IRQ | XPOWERS_AXP2101_PKEY_SHORT_IRQ);
+    pinMode(PMU_IRQ, INPUT /* INPUT_PULLUP */);
+    attachInterrupt(digitalPinToInterrupt(PMU_IRQ), StaticIrqCallback, FALLING);
 
     return true;
 }
@@ -217,7 +232,7 @@ void IRAM_ATTR Power::StaticIrqCallback()
 void Power::UpdateStatus()
 {
     float batVoltage_V  = AXPDriver.getBattVoltage() / 1000.0f;
-    float batCurrent_mA = AXPDriver.getBatteryChargeCurrent() - AXPDriver.getBattDischargeCurrent();
+    float batCurrent_mA = 0; //FGA hack AXPDriver.getBatteryChargeCurrent() - AXPDriver.getBattDischargeCurrent();
 
     powerStatus.batteryConnected = AXPDriver.isBatteryConnect();
     powerStatus.batteryCharging  = AXPDriver.isCharging();
@@ -230,7 +245,7 @@ void Power::UpdateStatus()
         powerStatus.batteryCurrent_mA = batCurrent_mA;
         powerStatus.batteryLevel_per  = GetBatteryLevel(batVoltage_V, batCurrent_mA);
         powerStatus.usbVoltage_V      = AXPDriver.getVbusVoltage();
-        powerStatus.usbCurrent_mA     = AXPDriver.getVbusCurrent();
+        powerStatus.usbCurrent_mA     = 0; // FGA hack AXPDriver.getVbusCurrent();
         powerStatus.temperature_C     = AXPDriver.getTemperature();
     }
     else
@@ -241,7 +256,8 @@ void Power::UpdateStatus()
         powerStatus.usbVoltage_V =
             (VOLTAGE_FILTERING_FACTOR * powerStatus.usbVoltage_V) + ((1.0f - VOLTAGE_FILTERING_FACTOR) * AXPDriver.getVbusVoltage() / 1000.0f);
         powerStatus.usbCurrent_mA =
-            (CURRENT_FILTERING_FACTOR * powerStatus.usbCurrent_mA) + ((1.0f - CURRENT_FILTERING_FACTOR) * AXPDriver.getVbusCurrent());
+            0.0;
+            // FGA hack (CURRENT_FILTERING_FACTOR * powerStatus.usbCurrent_mA) + ((1.0f - CURRENT_FILTERING_FACTOR) * AXPDriver.getVbusCurrent());
         powerStatus.temperature_C =
             (TEMPERATURE_FILTERING_FACTOR * powerStatus.temperature_C) + ((1.0f - TEMPERATURE_FILTERING_FACTOR) * AXPDriver.getTemperature());
         powerStatus.batteryLevel_per =
@@ -252,6 +268,22 @@ void Power::UpdateStatus()
 
 void Power::CommandShutdown()
 {
+    AXPDriver.setChargingLedMode(XPOWERS_CHG_LED_OFF);
+
+    AXPDriver.disableButtonBatteryCharge();
+
+    AXPDriver.disableALDO2();
+    AXPDriver.disableALDO3();
+
+    delay(20);
+
+    /*
+    * Complete power off
+    *
+    * to power back on either:
+    * - press and hold PWR button for 1-2 seconds then release, or
+    * - cycle micro-USB power
+    */
     AXPDriver.shutdown();
 }
 
