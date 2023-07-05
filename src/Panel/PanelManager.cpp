@@ -120,11 +120,13 @@ bool PanelManager::Init()
     depthPage.SetData(&PageHandler::navData.dpt_m, std::string("m"), true, &PageHandler::navData.stp_degc, std::string("c"), true);
     speedPage.SetData(&PageHandler::navData.spd_kt, std::string("kt"), true, &PageHandler::navData.vcc_v, std::string("v"), true);
     trueWindPage.SetData(&PageHandler::navData.tws_kt, std::string("kt"), true, &PageHandler::navData.twa_deg, std::string("o"), false);
+    navPage.SetData(&PageHandler::navData.sog_kt, std::string("kt"), true, &PageHandler::navData.cog_deg, std::string("o"), false);
 
     statusTopic.AddPage(&clockPage, "Data: Time, Date");
     statusTopic.AddPage(&depthPage, "Data: DPT, STP");
     statusTopic.AddPage(&speedPage, "Data: SPD, VCC");
     statusTopic.AddPage(&trueWindPage, "Data: TWS, TWA");
+    statusTopic.AddPage(&navPage, "Data: SOG, COG");
     topicList.push_back(&statusTopic);
 
     infoTopic.AddPage(&infoPagePower, "Info: Battery");

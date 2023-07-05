@@ -107,15 +107,21 @@ bool FloatDataPage::Draw(bool force, bool flushDisplay)
     {
         intValue1 = value1->value * 10;
     }
-    if (value1 != nullptr)
+    if (value2 != nullptr)
     {
         intValue2 = value2->value * 10;
     }
 
-    if ((value1->valid != prevValue1Valid) || (intValue1 != prevValue1) || (intValue2 != prevValue2) || (value1->valid != prevValue2Valid))
+    if ((value1->valid != prevValue1Valid) || (intValue1 != prevValue1))
     {
         prevValue1Valid = navData.dpt_m.valid;
         prevValue1      = intValue1;
+    
+        updateDisplay = true;
+    }
+
+    if ((intValue2 != prevValue2) || (value1->valid != prevValue2Valid))
+    {
         prevValue2Valid = navData.vcc_v.valid;
         prevValue2      = intValue2;
 

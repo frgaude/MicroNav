@@ -100,6 +100,7 @@ class PanelManager
     FloatDataPage    depthPage;
     FloatDataPage    speedPage;
     FloatDataPage    trueWindPage;
+    FloatDataPage    navPage;
 
     NavigationData    *navData;
     DeviceInfo_t       networkStatus;

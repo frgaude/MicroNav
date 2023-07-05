@@ -310,6 +310,7 @@ void PrintNetworkMap(NetworkMap_t *networkMap)
 void ConversionLoop()
 {
     bool                exitNmeaLoop = false;
+    bool                newNmeaData = false;
     MicronetMessage_t  *rxMessage;
     MicronetMessageFifo txMessageFifo;
     uint32_t            lastHeadingTime = millis();
@@ -363,10 +364,13 @@ void ConversionLoop()
             gRxMessageFifo.DeleteMessage();
         }
 
+        newNmeaData = false;
+
         // Transmit any incoming data from GNSS link to DataBridge for decoding
         while (GNSS_SERIAL.available() > 0)
         {
             gDataBridge.PushNmeaChar(GNSS_SERIAL.read(), LINK_NMEA_GNSS);
+            newNmeaData = true;
         }
 
         // Transmit any incoming char from NMEA_EXT link to DataBridge for decoding
@@ -382,6 +386,7 @@ void ConversionLoop()
             }
             // Not ESC key : transmit to DataBridge
             gDataBridge.PushNmeaChar(c, LINK_NMEA_EXT);
+            newNmeaData = true;
         }
 
         // Only execute magnetic heading code if navigation compass is available
@@ -406,6 +411,12 @@ void ConversionLoop()
                     exitNmeaLoop = true;
                 }
             }
+        }
+
+        if (newNmeaData)
+        {
+            // Transmit to Panel manager the latest version of navigation data
+            gPanelDriver.SetNavigationData(gMicronetCodec.navData);
         }
 
         // Update validity of Micronet's navigation data
