@@ -137,8 +137,7 @@ bool Power::Init()
     AXPDriver.enableBattVoltageMeasure();
     AXPDriver.enableSystemVoltageMeasure();
 
-    // FGA SoftRF AXPDriver.setChargingLedMode(XPOWERS_CHG_LED_ON);
-    AXPDriver.setChargingLedMode(XPOWERS_CHG_LED_CTRL_CHG);
+    AXPDriver.setChargingLedMode(XPOWERS_CHG_LED_OFF);
 
     AXPDriver.setChargerConstantCurr(XPOWERS_AXP2101_CHG_CUR_500MA);
     AXPDriver.setChargerTerminationCurr(XPOWERS_AXP2101_CHG_ITERM_25MA);
