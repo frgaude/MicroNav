@@ -92,8 +92,7 @@ typedef struct
     float           zMagOffset;
     FreqSystem_t    freqSystem;
     int8_t          timeZone_h;
-    uint8_t         rmbWorkaround;
-    uint8_t         windRepeater;
+    uint8_t         sogcogFilter;
     uint8_t         spare;
     SerialType_t    nmeaLink;
     LinkId_t        gnssSource;

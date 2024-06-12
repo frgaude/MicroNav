@@ -74,6 +74,12 @@ NmeaBridge::NmeaBridge(MicronetCodec *micronetCodec)
     nmeaGnssBuffer[0]  = 0;
     memset(&nmeaTimeStamps, 0, sizeof(nmeaTimeStamps));
     this->micronetCodec = micronetCodec;
+
+    sogFilterIndex = 0;
+    memset(sogFilterBuffer, 0, SOG_COG_FILTERING_DEPTH);
+    cogFilterIndex = 0;
+    memset(cogFilterBuffer, 0, SOG_COG_FILTERING_DEPTH);
+
 }
 
 NmeaBridge::~NmeaBridge()
@@ -99,14 +105,14 @@ void NmeaBridge::PushNmeaChar(char c, LinkId_t sourceLink)
         return;
     }
 
-    if ((nmeaBuffer[0] != '$') || (c == '$'))
+    if (((nmeaBuffer[0] != '$') && (nmeaBuffer[0] != '!')) || (c == '$') || (c == '!'))
     {
         nmeaBuffer[0]   = c;
         *nmeaWriteIndex = 1;
         return;
     }
 
-    if (c == 13)
+    if ((*nmeaWriteIndex >= 10) && nmeaBuffer[*nmeaWriteIndex - 3] == '*')
     {
         nmeaBuffer[*nmeaWriteIndex] = 0;
 
@@ -138,6 +144,16 @@ void NmeaBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                     if (sourceLink == gConfiguration.eeprom.gnssSource)
                     {
                         DecodeGGASentence(nmeaBuffer);
+                        if (sourceLink != LINK_NMEA_EXT)
+                        {
+                            gConfiguration.ram.nmeaLink->println(nmeaBuffer);
+                        }
+                    }
+                    break;
+                case NMEA_ID_GLL:
+                    if (sourceLink == gConfiguration.eeprom.gnssSource)
+                    {
+                        DecodeGLLSentence(nmeaBuffer);
                         if (sourceLink != LINK_NMEA_EXT)
                         {
                             gConfiguration.ram.nmeaLink->println(nmeaBuffer);
@@ -179,16 +195,20 @@ void NmeaBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                     }
                     break;
                 default:
-                    break;
+                  // An unknown sentence is forwarded to NMEA_EXT if it is coming from the GNSS link. It is useful to forward AIVDM/AIVDO
+                    // sentences coming from an AIS receiver.
+                    if ((sourceLink == gConfiguration.eeprom.gnssSource) && (sourceLink != LINK_NMEA_EXT))
+                    {
+                        gConfiguration.ram.nmeaLink->println(nmeaBuffer);
+                    }   
+                     break;
                 }
             }
         }
-        else
-        {
-            nmeaBuffer[0]   = 0;
-            *nmeaWriteIndex = 0;
-            return;
-        }
+
+        nmeaBuffer[0]   = 0;
+        *nmeaWriteIndex = 0;
+        return;
     }
 
     nmeaBuffer[*nmeaWriteIndex] = c;
@@ -229,9 +249,80 @@ void NmeaBridge::UpdateMicronetData()
     EncodeXDR();
 }
 
+float NmeaBridge::FilteredSOG(float newSog_kt)
+{
+    if (gConfiguration.eeprom.sogcogFilter == 1)
+    {
+        sogFilterBuffer[sogFilterIndex++] = newSog_kt;
+        if (sogFilterIndex >= SOG_COG_FILTERING_DEPTH)
+        {
+            sogFilterIndex = 0;
+        }
+
+        float filteredSog_kt = sogFilterBuffer[0];
+        for (int i = 1; i < SOG_COG_FILTERING_DEPTH; i++)
+        {
+            filteredSog_kt += sogFilterBuffer[i];
+        }
+
+        return filteredSog_kt / SOG_COG_FILTERING_DEPTH;
+    }
+    else
+    {
+        return newSog_kt;
+    }
+}
+
+float NmeaBridge::FilteredCOG(float newCog_deg)
+{
+if (gConfiguration.eeprom.sogcogFilter == 1)
+    {
+        cogFilterBuffer[cogFilterIndex++] = newCog_deg;
+        if (cogFilterIndex >= SOG_COG_FILTERING_DEPTH)
+        {
+            cogFilterIndex = 0;
+        }
+
+        float filteredCog_deg = cogFilterBuffer[0];
+        float previousCog_deg = filteredCog_deg;
+        float bufferedCog_deg;
+        for (int i = 1; i < SOG_COG_FILTERING_DEPTH; i++)
+        {
+            bufferedCog_deg = cogFilterBuffer[i];
+            if (bufferedCog_deg - previousCog_deg > 180)
+            {
+                bufferedCog_deg -= 360;
+            }
+            else if (bufferedCog_deg - previousCog_deg < -180)
+            {
+                bufferedCog_deg += 360;
+            }
+            previousCog_deg = bufferedCog_deg;
+            filteredCog_deg += bufferedCog_deg;
+        }
+
+        filteredCog_deg = filteredCog_deg / SOG_COG_FILTERING_DEPTH;
+
+        if (filteredCog_deg < 0)
+        {
+            filteredCog_deg += 360;
+        }
+        else if (filteredCog_deg >= 360)
+        {
+            filteredCog_deg -= 360;
+        }
+
+        return filteredCog_deg;
+    } 
+    else
+    {
+        return newCog_deg;
+    }
+}
+
 bool NmeaBridge::IsSentenceValid(char *nmeaBuffer)
 {
-    if (nmeaBuffer[0] != '$')
+   if ((nmeaBuffer[0] != '$') && (nmeaBuffer[0] != '!'))
         return false;
 
     char *pCs = strrchr(static_cast<char *>(nmeaBuffer), '*') + 1;
@@ -274,6 +365,10 @@ NmeaId_t NmeaBridge::SentenceId(char *nmeaBuffer)
     case 0x474741:
         // GGA sentence
         nmeaSentence = NMEA_ID_GGA;
+        break;
+    case 0x474C4C:
+        // GLL sentence
+        nmeaSentence = NMEA_ID_GLL;
         break;
     case 0x565447:
         // VTG sentence
@@ -327,12 +422,7 @@ void NmeaBridge::DecodeRMBSentence(char *sentence)
     if ((sentence = strchr(sentence, ',')) == nullptr)
         return;
     sentence++;
-    if (gConfiguration.eeprom.rmbWorkaround == 0)
-    {
-        if ((sentence = strchr(sentence, ',')) == nullptr)
-            return;
-        sentence++;
-    }
+
     memset(micronetCodec->navData.waypoint.name, ' ', sizeof(micronetCodec->navData.waypoint.name));
     if (sentence[0] != ',')
     {
@@ -363,16 +453,7 @@ void NmeaBridge::DecodeRMBSentence(char *sentence)
         }
         micronetCodec->navData.waypoint.nameLength = i;
     }
-    uint32_t remainingParams;
-    if (gConfiguration.eeprom.rmbWorkaround == 0)
-    {
-        remainingParams = 5;
-    }
-    else
-    {
-        remainingParams = 6;
-    }
-    for (int i = 0; i < remainingParams; i++)
+    for (int i = 0; i < 5; i++)
     {
         if ((sentence = strchr(sentence, ',')) == nullptr)
             return;
@@ -406,6 +487,9 @@ void NmeaBridge::DecodeRMBSentence(char *sentence)
 
 void NmeaBridge::DecodeRMCSentence(char *sentence)
 {
+    float degs, mins;
+    float value;
+
     sentence += 7;
 
     if (sentence[0] != ',')
@@ -415,12 +499,77 @@ void NmeaBridge::DecodeRMCSentence(char *sentence)
         micronetCodec->navData.time.valid     = true;
         micronetCodec->navData.time.timeStamp = millis();
     }
-    for (int i = 0; i < 8; i++)
+
+    for (int i = 0; i < 2; i++)
     {
         if ((sentence = strchr(sentence, ',')) == nullptr)
             return;
         sentence++;
     }
+
+    if (sentence[0] != ',')
+    {
+        degs = (sentence[0] - '0') * 10 + (sentence[1] - '0');
+        sscanf(sentence + 2, "%f,", &mins);
+        micronetCodec->navData.latitude_deg.value = degs + mins / 60.0f;
+        if ((sentence = strchr(sentence, ',')) == nullptr)
+            return;
+        sentence++;
+        if (sentence[0] == 'S')
+            micronetCodec->navData.latitude_deg.value = -micronetCodec->navData.latitude_deg.value;
+        micronetCodec->navData.latitude_deg.valid     = true;
+        micronetCodec->navData.latitude_deg.timeStamp = millis();
+    }
+    if ((sentence = strchr(sentence, ',')) == nullptr)
+        return;
+    sentence++;
+
+    if (sentence[0] != ',')
+    {
+        degs = (sentence[0] - '0') * 100 + (sentence[1] - '0') * 10 + (sentence[2] - '0');
+        sscanf(sentence + 3, "%f,", &mins);
+        micronetCodec->navData.longitude_deg.value = degs + mins / 60.0f;
+        if ((sentence = strchr(sentence, ',')) == nullptr)
+            return;
+        sentence++;
+        if (sentence[0] == 'W')
+            micronetCodec->navData.longitude_deg.value = -micronetCodec->navData.longitude_deg.value;
+        micronetCodec->navData.longitude_deg.valid     = true;
+        micronetCodec->navData.longitude_deg.timeStamp = millis();
+    }
+    if ((sentence = strchr(sentence, ',')) == nullptr)
+        return;
+    sentence++;
+
+    if (sscanf(sentence, "%f", &value) == 1)
+    {
+        micronetCodec->navData.sog_kt.value     = FilteredSOG(value);
+        micronetCodec->navData.sog_kt.valid     = true;
+        micronetCodec->navData.sog_kt.timeStamp = millis();
+
+#if (EMULATE_SPD_WITH_SOG == 1)
+        micronetCodec->navData.spd_kt.value     = FilteredSOG(value);;
+        micronetCodec->navData.spd_kt.valid     = true;
+        micronetCodec->navData.spd_kt.timeStamp = millis();
+#endif
+    }
+    if ((sentence = strchr(sentence, ',')) == nullptr)
+        return;
+    sentence++;
+
+    if (sscanf(sentence, "%f", &value) == 1)
+    {
+        if (value < 0)
+            value += 360.0f;
+
+        micronetCodec->navData.cog_deg.value     = FilteredCOG(value);
+        micronetCodec->navData.cog_deg.valid     = true;
+        micronetCodec->navData.cog_deg.timeStamp = millis();
+    }
+    if ((sentence = strchr(sentence, ',')) == nullptr)
+        return;
+    sentence++;
+
     if (sentence[0] != ',')
     {
         micronetCodec->navData.date.day       = (sentence[0] - '0') * 10 + (sentence[1] - '0');
@@ -440,6 +589,43 @@ void NmeaBridge::DecodeGGASentence(char *sentence)
     if ((sentence = strchr(sentence, ',')) == nullptr)
         return;
     sentence++;
+
+    if (sentence[0] != ',')
+    {
+        degs = (sentence[0] - '0') * 10 + (sentence[1] - '0');
+        sscanf(sentence + 2, "%f,", &mins);
+        micronetCodec->navData.latitude_deg.value = degs + mins / 60.0f;
+        if ((sentence = strchr(sentence, ',')) == nullptr)
+            return;
+        sentence++;
+        if (sentence[0] == 'S')
+            micronetCodec->navData.latitude_deg.value = -micronetCodec->navData.latitude_deg.value;
+        micronetCodec->navData.latitude_deg.valid     = true;
+        micronetCodec->navData.latitude_deg.timeStamp = millis();
+    }
+    if ((sentence = strchr(sentence, ',')) == nullptr)
+        return;
+    sentence++;
+    if (sentence[0] != ',')
+    {
+        degs = (sentence[0] - '0') * 100 + (sentence[1] - '0') * 10 + (sentence[2] - '0');
+        sscanf(sentence + 3, "%f,", &mins);
+        micronetCodec->navData.longitude_deg.value = degs + mins / 60.0f;
+        if ((sentence = strchr(sentence, ',')) == nullptr)
+            return;
+        sentence++;
+        if (sentence[0] == 'W')
+            micronetCodec->navData.longitude_deg.value = -micronetCodec->navData.longitude_deg.value;
+        micronetCodec->navData.longitude_deg.valid     = true;
+        micronetCodec->navData.longitude_deg.timeStamp = millis();
+    }
+}
+
+void NmeaBridge::DecodeGLLSentence(char *sentence)
+{
+    float degs, mins;
+
+    sentence += 7;
 
     if (sentence[0] != ',')
     {
@@ -504,7 +690,7 @@ void NmeaBridge::DecodeVTGSentence(char *sentence)
         if (value < 0)
             value += 360.0f;
 
-        micronetCodec->navData.cog_deg.value     = value;
+        micronetCodec->navData.cog_deg.value     = FilteredCOG(value);
         micronetCodec->navData.cog_deg.valid     = true;
         micronetCodec->navData.cog_deg.timeStamp = millis();
     }
@@ -516,9 +702,15 @@ void NmeaBridge::DecodeVTGSentence(char *sentence)
     }
     if (sscanf(sentence, "%f", &value) == 1)
     {
-        micronetCodec->navData.sog_kt.value     = value;
+        micronetCodec->navData.sog_kt.value     = FilteredSOG(value);
         micronetCodec->navData.sog_kt.valid     = true;
         micronetCodec->navData.sog_kt.timeStamp = millis();
+
+#if (EMULATE_SPD_WITH_SOG == 1)
+        micronetCodec->navData.spd_kt.value     = FilteredSOG(value);;
+        micronetCodec->navData.spd_kt.valid     = true;
+        micronetCodec->navData.spd_kt.timeStamp = millis();
+#endif
     }
 }
 

@@ -44,6 +44,8 @@
 #define NMEA_SENTENCE_MAX_LENGTH   128
 #define NMEA_SENTENCE_HISTORY_SIZE 24
 
+#define SOG_COG_FILTERING_DEPTH    7
+
 /***************************************************************************/
 /*                                Types                                    */
 /***************************************************************************/
@@ -54,6 +56,7 @@ typedef enum
     NMEA_ID_RMB,
     NMEA_ID_RMC,
     NMEA_ID_GGA,
+    NMEA_ID_GLL,
     NMEA_ID_VTG,
     NMEA_ID_MWV,
     NMEA_ID_DPT,
@@ -93,12 +96,20 @@ class NmeaBridge
     int                  nmeaGnssWriteIndex;
     NmeaTimeStamps_t     nmeaTimeStamps;
     MicronetCodec *      micronetCodec;
+    int                  sogFilterIndex;
+    float                sogFilterBuffer[SOG_COG_FILTERING_DEPTH];
+    int                  cogFilterIndex;
+    float                cogFilterBuffer[SOG_COG_FILTERING_DEPTH];
+
+    float FilteredSOG(float newSog_kt);
+    float FilteredCOG(float newCog_deg);
 
     bool     IsSentenceValid(char *nmeaBuffer);
     NmeaId_t SentenceId(char *nmeaBuffer);
     void     DecodeRMBSentence(char *sentence);
     void     DecodeRMCSentence(char *sentence);
     void     DecodeGGASentence(char *sentence);
+    void     DecodeGLLSentence(char *sentence);
     void     DecodeVTGSentence(char *sentence);
     void     DecodeMWVSentence(char *sentence);
     void     DecodeDPTSentence(char *sentence);

@@ -90,8 +90,7 @@ Configuration::Configuration() : configModified(false)
     eeprom.depthSource          = LINK_MICRONET;
     eeprom.speedSource          = LINK_MICRONET;
     eeprom.compassSource        = LINK_MICRONET;
-    eeprom.rmbWorkaround        = false;
-    eeprom.windRepeater         = true;
+    eeprom.sogcogFilter         = true;
     eeprom.compassHdgVector     = COMPASS_HDG_VECTOR_X;
 }
 
@@ -223,7 +222,7 @@ void Configuration::DeployConfiguration(MicronetDevice *micronetDevice)
             micronetDevice->AddDataFields(DATA_FIELD_SPD);
         }
 
-        if ((gConfiguration.eeprom.windRepeater != 0) || (gConfiguration.eeprom.windSource != LINK_MICRONET))
+        if (gConfiguration.eeprom.windSource != LINK_MICRONET)
         {
             micronetDevice->AddDataFields(DATA_FIELD_AWS | DATA_FIELD_AWA);
         }

@@ -42,7 +42,7 @@
 /***************************************************************************/
 
 // @brief Number of configuration items on this page
-#define NUMBER_OF_CONFIG_ITEMS 4
+#define NUMBER_OF_CONFIG_ITEMS 3
 // @brief Horizontal position of configuration values on display
 #define SELECTION_X_POSITION 72
 
@@ -63,7 +63,7 @@
 /***************************************************************************/
 
 ConfigPage1::ConfigPage1()
-    : editMode(false), editPosition(0), configFreqSel(0), configNmeaSel(0), configRmbWorkaround(false), configWindRepeater(false)
+    : editMode(false), editPosition(0), configFreqSel(0), configNmeaSel(0), configSogCogFilter(false)
 {
 }
 
@@ -83,8 +83,7 @@ bool ConfigPage1::Draw(bool force, bool flushDisplay)
     {
         configFreqSel       = (uint32_t)gConfiguration.eeprom.freqSystem;
         configNmeaSel       = (uint32_t)gConfiguration.eeprom.nmeaLink;
-        configRmbWorkaround = gConfiguration.eeprom.rmbWorkaround;
-        configWindRepeater  = gConfiguration.eeprom.windRepeater;
+        configSogCogFilter  = gConfiguration.eeprom.sogcogFilter;
     }
 
     if (display != nullptr)
@@ -98,9 +97,8 @@ bool ConfigPage1::Draw(bool force, bool flushDisplay)
         display->setCursor(0, 0);
         display->println("Frequency");
         display->println("NMEA link");
-        display->println("RMB bugfix");
-        display->println("Wind Repeat");
-
+        display->println("SOG Filter");
+        
         // Config values
         for (int i = 0; i < NUMBER_OF_CONFIG_ITEMS; i++)
         {
@@ -194,9 +192,7 @@ char const *ConfigPage1::ConfigString(uint32_t index)
     case 1:
         return ConfigNmeaString();
     case 2:
-        return ConfigRmbWorkaroundString();
-    case 3:
-        return ConfigWindRepeaterString();
+        return ConfigSogCogFilterString();
     }
 
     return "---";
@@ -234,22 +230,11 @@ char const *ConfigPage1::ConfigNmeaString()
     return "---";
 }
 
-// Return the string of a the RMB Workaround configuration item
-// @return String naming the value of the RMB Workaround
-char const *ConfigPage1::ConfigRmbWorkaroundString()
+// Return the string of a the SOG/COG filter configuration item
+// @return String naming the value of the SOG/COG filter
+char const *ConfigPage1::ConfigSogCogFilterString()
 {
-    if (configRmbWorkaround)
-    {
-        return "Yes";
-    }
-    return "No";
-}
-
-// Return the string of a the Wind Repeater configuration item
-// @return String naming the value of Wind Repeater
-char const *ConfigPage1::ConfigWindRepeaterString()
-{
-    if (configWindRepeater)
+    if (configSogCogFilter)
     {
         return "Yes";
     }
@@ -269,10 +254,7 @@ void ConfigPage1::ConfigCycle(uint32_t index)
         ConfigNmeaCycle();
         break;
     case 2:
-        ConfigRmbWorkaroundCycle();
-        break;
-    case 3:
-        ConfigWindRepeaterCycle();
+        ConfigSogCogFilterCycle();
         break;
     }
 }
@@ -289,16 +271,10 @@ void ConfigPage1::ConfigNmeaCycle()
     configNmeaSel = (configNmeaSel + 1) % 2;
 }
 
-// @brief Cycle the value of the RMB Workaround configuration item
-void ConfigPage1::ConfigRmbWorkaroundCycle()
+// @brief Cycle the value of the SOG/COG filter configuration item
+void ConfigPage1::ConfigSogCogFilterCycle()
 {
-    configRmbWorkaround = !configRmbWorkaround;
-}
-
-// @brief Cycle the value of the Wind Repeater configuration item
-void ConfigPage1::ConfigWindRepeaterCycle()
-{
-    configWindRepeater = !configWindRepeater;
+    configSogCogFilter = !configSogCogFilter;
 }
 
 // @brief Deploy the local configuration to the overall system and save it to
@@ -307,8 +283,7 @@ void ConfigPage1::DeployConfiguration()
 {
     gConfiguration.eeprom.freqSystem    = (FreqSystem_t)configFreqSel;
     gConfiguration.eeprom.nmeaLink      = (SerialType_t)configNmeaSel;
-    gConfiguration.eeprom.rmbWorkaround = configRmbWorkaround;
-    gConfiguration.eeprom.windRepeater  = configWindRepeater;
+    gConfiguration.eeprom.sogcogFilter = configSogCogFilter;
 
     gConfiguration.DeployConfiguration(&gMicronetDevice);
     gConfiguration.SaveToEeprom();
