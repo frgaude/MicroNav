@@ -54,7 +54,8 @@ typedef enum
 {
     SERIAL_TYPE_USB = 0,
     SERIAL_TYPE_BT,
-    SERIAL_TYPE_WIFI
+    SERIAL_TYPE_WIFI_TCP,
+    SERIAL_TYPE_WIFI_UDP
 } SerialType_t;
 
 typedef enum

@@ -43,6 +43,8 @@
 #include "PanelManager.h"
 #include "Power.h"
 #include "RfDriver.h"
+#include "WiFiUDPSerial.h"
+#include "WifiClient.h"
 
 #include <BluetoothSerial.h>
 
@@ -63,10 +65,11 @@ extern MenuManager         gMenuManager;
 extern MicronetMessageFifo gRxMessageFifo;
 extern Configuration       gConfiguration;
 extern NavCompass          gNavCompass;
-extern UbloxDriver           gM8nDriver;
+extern UbloxDriver         gM8nDriver;
 extern PanelManager        gPanelDriver;
 extern MicronetCodec       gMicronetCodec;
 extern BluetoothSerial     gBtSerial;
+extern WiFiUDPSerial        gWiFiUDPSerial;
 extern NmeaBridge          gDataBridge;
 extern MicronetDevice      gMicronetDevice;
 extern Power               gPower;

@@ -56,9 +56,10 @@ MicronetCodec       gMicronetCodec;                   // Codec used by MicronetD
 MicronetMessageFifo gRxMessageFifo;                   // Micronet message fifo store
 Configuration       gConfiguration;                   // Global configuration
 NavCompass          gNavCompass;                      // Navigation compass
-UbloxDriver           gM8nDriver;                       // GNSS Driver
+UbloxDriver         gM8nDriver;                       // GNSS Driver
 PanelManager        gPanelDriver;                     // Display driver
 BluetoothSerial     gBtSerial;                        // Bluetooth driver
+WiFiUDPSerial       gWiFiUDPSerial;                      // WiFi serial driver
 NmeaBridge          gDataBridge(&gMicronetCodec);     // NMEA Bridge
 MicronetDevice      gMicronetDevice(&gMicronetCodec); // Micronet Device
 Power               gPower;                           // Power Manager

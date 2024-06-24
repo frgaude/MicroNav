@@ -33,6 +33,7 @@
 #include <Wire.h>
 
 #include "BoardConfig.h"
+//#include "WiFiConfig.h"
 #include "Configuration.h"
 #include "Globals.h"
 #include "MenuManager.h"
@@ -65,6 +66,8 @@ void PrintNetworkMap(NetworkMap_t *networkMap);
 void ConversionLoop();
 void MenuDebug1();
 void MenuDebug2();
+
+void startWifi(); //TODO FGA: move to proper place...
 
 /***************************************************************************/
 /*                               Globals                                   */
@@ -159,6 +162,8 @@ void setup()
 
     // Display serial menu
     gMenuManager.PrintMenu();
+
+    startWifi();
 
     // For the main loop to know when it is executing for the first time
     firstLoop = true;

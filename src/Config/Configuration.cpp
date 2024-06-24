@@ -189,13 +189,15 @@ void Configuration::DeployConfiguration(MicronetDevice *micronetDevice)
             ram.nmeaLink = &gBtSerial;
         }
         break;
-    case SERIAL_TYPE_WIFI:
+    case SERIAL_TYPE_WIFI_TCP:
+    case SERIAL_TYPE_WIFI_UDP:
         if (ram.nmeaLink == &gBtSerial)
         {
             gBtSerial.end();
         }
         // TODO : Implement WiFi serial link
-        ram.nmeaLink = &Serial;
+        gWiFiUDPSerial.begin(115200);
+        ram.nmeaLink = &gWiFiUDPSerial;
         break;
     }
 

@@ -223,8 +223,10 @@ char const *ConfigPage1::ConfigNmeaString()
         return "USB";
     case 1:
         return "Bluetooth";
+    case 2:
+        return "WiFi TCP";
     case 3:
-        return "WiFi";
+        return "WiFi UDP";
     }
 
     return "---";
@@ -268,7 +270,7 @@ void ConfigPage1::ConfigFreqCycle()
 // @brief Cycle the value of the NMEA Link configuration item
 void ConfigPage1::ConfigNmeaCycle()
 {
-    configNmeaSel = (configNmeaSel + 1) % 2;
+    configNmeaSel = (configNmeaSel + 1) % 4;
 }
 
 // @brief Cycle the value of the SOG/COG filter configuration item

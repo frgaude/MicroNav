@@ -62,7 +62,7 @@ class ConfigPage1 : public PageHandler
 
     uint32_t configFreqSel;
     uint32_t configNmeaSel;
-    bool      configSogCogFilter;
+    bool     configSogCogFilter;
 
     void DeployConfiguration();
 
