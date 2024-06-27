@@ -1,10 +1,11 @@
-#ifndef UDPSERIAL
-    #define UDPSERIAL
+#ifndef TCPSERVERSERIAL
+    #define TCPSERVERSERIAL
     
     #include <Arduino.h>
     #include <WiFi.h>
-    #include <WiFiUdp.h>
     #include <esp_wifi.h>
+    #include <WiFiClient.h>
+    #include <WiFiServer.h>
 
     // OPTIONS
     #define NO_OPTION       0
@@ -14,20 +15,20 @@
     #define SERIAL_TCP_PORT 8881   // Wifi Port
     #define SERIAL_UDP_PORT 14551  // UDP Port 
   
-    class WiFiUDPSerial : public Stream
+    class WiFiTCPSerial : public Stream
     {
         private:
-            WiFiUDP udp;  
+            WiFiClient client;  
+            WiFiServer server;  
             int m_server_port;
             IPAddress m_IP;
-            IPAddress m_broadcastIP;
             bool m_connected;
             bool m_reconnect;
-            bool connected();
+            int connected();
 
-        public:    
-            WiFiUDPSerial(); //const char *server, int server_port, int options);
-            virtual ~WiFiUDPSerial();
+        public:
+            WiFiTCPSerial(); //const char *server, int server_port, int options);
+            virtual ~WiFiTCPSerial();
 
             int available();
             int read();
@@ -40,6 +41,7 @@
             virtual size_t write(uint8_t val);
             virtual size_t write(const uint8_t *buffer, size_t size);
             using Print::write; 
+            
 
 };
 #endif

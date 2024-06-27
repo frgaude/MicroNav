@@ -44,6 +44,7 @@
 #include "Power.h"
 #include "RfDriver.h"
 #include "WiFiUDPSerial.h"
+#include "WiFiTCPSerial.h"
 #include "WifiClient.h"
 
 #include <BluetoothSerial.h>
@@ -69,7 +70,8 @@ extern UbloxDriver         gM8nDriver;
 extern PanelManager        gPanelDriver;
 extern MicronetCodec       gMicronetCodec;
 extern BluetoothSerial     gBtSerial;
-extern WiFiUDPSerial        gWiFiUDPSerial;
+extern WiFiUDPSerial       gWiFiUDPSerial;
+extern WiFiTCPSerial       gWiFiTCPSerial;
 extern NmeaBridge          gDataBridge;
 extern MicronetDevice      gMicronetDevice;
 extern Power               gPower;

@@ -224,9 +224,9 @@ char const *ConfigPage1::ConfigNmeaString()
     case 1:
         return "Bluetooth";
     case 2:
-        return "WiFi TCP";
-    case 3:
         return "WiFi UDP";
+    case 3:
+        return "WiFi TCP";
     }
 
     return "---";

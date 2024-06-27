@@ -7,10 +7,9 @@
 WiFiUDPSerial::WiFiUDPSerial() // params: const char *server, int server_port, int options
 {
     m_server_port = SERIAL_UDP_PORT;
-    m_broadcastIP = IPAddress(255,255,255,255);
+    m_broadcastIP = IPAddress(192,168,8,255); //should be dynamic
     m_IP = IPAddress(0,0,0,0);
 
-    m_show_timestamp = true;
     m_connected = false;
     m_reconnect = RECONNECT;
 }
@@ -39,6 +38,8 @@ int WiFiUDPSerial::begin(unsigned long baud)
         // server.setNoDelay(true);
         // m_connected = true;
     //UDP - not useful if bradcasting only?
+        CONSOLE.print("starting UDP listening on port ");
+        CONSOLE.println(m_server_port);
     m_connected = udp.begin(m_server_port);
 
     }
@@ -47,7 +48,7 @@ int WiFiUDPSerial::begin(unsigned long baud)
 }
 
 // Check if connection is still live and reconnect if option 
-int WiFiUDPSerial::isConnected()
+bool WiFiUDPSerial::connected()
 {
     // TCP client mode
         // m_connected = client.connected();
@@ -65,69 +66,69 @@ int WiFiUDPSerial::isConnected()
  
 }
 
-
 int WiFiUDPSerial::available()
 {
-    if (!isConnected())
-        return 0;
-
+    // if (!connected())
+        // return 0;
+//    return udp.parsePacket();
     return udp.available();
 }
+
 int WiFiUDPSerial::read()
 {
-    if (!isConnected())
-        return 0;
-    return udp.read();
+    // if (available() > 0) {
+        return udp.read();
+    // }
+    // return -1; // no data available
 }
+
 int WiFiUDPSerial::peek()
 {
-    if (!isConnected())
-        return 0;
+    // if (!connected())
+        // return 0;
 
     return udp.peek();
 }
 void WiFiUDPSerial::flush()
 {
-    if (isConnected())
+    // if (connected())
         udp.flush();
 
 }
 
-void WiFiUDPSerial::stop()
+void WiFiUDPSerial::end()
 {
     udp.stop();
+    m_connected = false;
 }
 
 size_t WiFiUDPSerial::write(const uint8_t *buffer, size_t size)
 {
-    if (m_show_timestamp) // if this is a new line, check if the connection is alive (we don't want to check multiple times per lines)
-    {
-        m_connected = isConnected();
-    }
-
-    if ((size==2) && (*buffer==13) && (*(buffer+1)==10)) // if this is a new line, raise the flag so a timestamp will be printed on the next call
-       m_show_timestamp = true;
-    else
-        m_show_timestamp = false;
-    
     if (!m_connected) // don't send data, we're not conected
        return 0;
 
     // we're good, send data to the server
-    int ret = udp.beginPacket(m_broadcastIP,m_server_port);
-    udp.write(buffer, size);
+    udp.beginPacket(m_broadcastIP,m_server_port);
+    size_t written = udp.write(buffer, size);
     udp.endPacket();
-    udp.flush();
+    CONSOLE.print("UDP:");
+    CONSOLE.write(buffer, size);
 
-    return ret != 0;       
+    return written;       
 }
 
 size_t WiFiUDPSerial::write(uint8_t i)
 {
-    int ret = udp.beginPacket(m_broadcastIP,m_server_port);
-    udp.write(&i, 1);
-    udp.endPacket();
-    udp.flush();
+    if (!m_connected) // don't send data, we're not conected
+       return 0;
 
-    return ret != 0;       
+    // we're good, send data to the server
+    udp.beginPacket(m_broadcastIP,m_server_port);
+    size_t written = udp.write(&i, 1);
+    udp.endPacket();
+
+    CONSOLE.print("u");
+    CONSOLE.write(&i, 1);
+
+    return written;       
 }

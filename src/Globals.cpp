@@ -59,7 +59,8 @@ NavCompass          gNavCompass;                      // Navigation compass
 UbloxDriver         gM8nDriver;                       // GNSS Driver
 PanelManager        gPanelDriver;                     // Display driver
 BluetoothSerial     gBtSerial;                        // Bluetooth driver
-WiFiUDPSerial       gWiFiUDPSerial;                      // WiFi serial driver
+WiFiUDPSerial       gWiFiUDPSerial;                   // WiFi serial driver
+WiFiTCPSerial       gWiFiTCPSerial;                   // WiFi serial driver
 NmeaBridge          gDataBridge(&gMicronetCodec);     // NMEA Bridge
 MicronetDevice      gMicronetDevice(&gMicronetCodec); // Micronet Device
 Power               gPower;                           // Power Manager
