@@ -1,4 +1,4 @@
-#include "Arduino.h"
+#include <Arduino.h>
 #include "BoardConfig.h"
 #include "WiFiConfig.h"
 #include <esp_wifi.h>
@@ -18,6 +18,8 @@ uint8_t buf2[bufferSize];
 uint16_t i2=0;
 
 IPAddress IP(0, 0, 0, 0);
+IPAddress broadcastIP(0, 0, 0, 0);
+IPAddress localIP(0, 0, 0, 0);
 
 void startWifi()
 {
@@ -51,19 +53,25 @@ void startWifi()
     WiFi.softAP(AP_ssid, AP_password);
     delay(100);
     WiFi.softAPConfig(AP_local_ip, AP_gateway, AP_subnet);
-    IP = WiFi.softAPIP();
+    localIP = WiFi.softAPIP();
+    broadcastIP = WiFi.softAPBroadcastIP();
     CONSOLE.print("AP IP address: ");
-    CONSOLE.println(IP);
+    CONSOLE.print(localIP);
+    CONSOLE.print("- AP IP broadcast address: ");
+    CONSOLE.println(broadcastIP);
     wifiType = 1;
 
   } else {  // Wifi Client connection was sucessful
 
-    IP = WiFi.localIP();
+    localIP = WiFi.localIP();
+    broadcastIP = WiFi.broadcastIP();
     CONSOLE.println("OK");
     CONSOLE.println("");
     CONSOLE.println("WiFi client connected");
     CONSOLE.print("IP client address: ");
-    CONSOLE.println(IP);
+    CONSOLE.print(localIP);
+    CONSOLE.print("- IP broadcast address: ");
+    CONSOLE.println(broadcastIP);
   }
 
   // #ifdef PROTOCOL_TCP

@@ -33,7 +33,7 @@
 #include <Wire.h>
 
 #include "BoardConfig.h"
-//#include "WiFiConfig.h"
+
 #include "Configuration.h"
 #include "Globals.h"
 #include "MenuManager.h"
@@ -163,7 +163,12 @@ void setup()
     // Display serial menu
     gMenuManager.PrintMenu();
 
+    // Start WiFi
+    if (gConfiguration.ram.nmeaLink == &gWiFiUDPSerial || gConfiguration.ram.nmeaLink == &gWiFiTCPSerial)
+    {
+    CONSOLE.println("Starting WiFi ... ");
     startWifi();
+    }
 
     // For the main loop to know when it is executing for the first time
     firstLoop = true;

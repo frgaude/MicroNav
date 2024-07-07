@@ -194,7 +194,6 @@ void Configuration::DeployConfiguration(MicronetDevice *micronetDevice)
         {
             gBtSerial.end();
         }
-        // TODO : Implement WiFi serial link
         gWiFiUDPSerial.begin(115200);
         ram.nmeaLink = &gWiFiUDPSerial;
         break;

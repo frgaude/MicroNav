@@ -19,7 +19,7 @@
         private:
             WiFiUDP udp;  
             int m_server_port;
-            IPAddress m_IP;
+            IPAddress m_localIP;
             IPAddress m_broadcastIP;
             bool m_connected;
             bool m_reconnect;

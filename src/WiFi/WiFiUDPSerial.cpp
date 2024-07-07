@@ -7,8 +7,8 @@
 WiFiUDPSerial::WiFiUDPSerial() // params: const char *server, int server_port, int options
 {
     m_server_port = SERIAL_UDP_PORT;
-    m_broadcastIP = IPAddress(192,168,8,255); //should be dynamic
-    m_IP = IPAddress(0,0,0,0);
+    m_broadcastIP = IPAddress(0,0,0,0);
+    m_localIP =  IPAddress(0,0,0,0);
 
     m_connected = false;
     m_reconnect = RECONNECT;
@@ -29,19 +29,21 @@ int WiFiUDPSerial::begin(unsigned long baud)
         m_connected = false;
     else
     {
-    // TCP client mode
-        // if (!client.connect(m_server, m_server_port, 1000))
-        //     m_connected = false;
-
-    //TCP server mode
-        // server.begin(SERIAL_TCP_PORT);
-        // server.setNoDelay(true);
-        // m_connected = true;
-    //UDP - not useful if bradcasting only?
-        CONSOLE.print("starting UDP listening on port ");
-        CONSOLE.println(m_server_port);
-    m_connected = udp.begin(m_server_port);
-
+        //IPs
+        if(WiFi.getMode() == WIFI_AP) 
+        {
+            m_localIP = WiFi.softAPIP();
+            m_broadcastIP = WiFi.softAPBroadcastIP();
+        }
+        else
+        {
+            m_localIP = WiFi.localIP();
+            m_broadcastIP = WiFi.broadcastIP();
+        }
+        //UDP listening
+            CONSOLE.print("starting UDP listening on port ");
+            CONSOLE.println(m_server_port);
+        m_connected = udp.begin(m_server_port);
     }
 
     return m_connected;
