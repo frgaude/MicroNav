@@ -38,13 +38,13 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <Wire.h>
+#include <AceButton.h>
 
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
 
 #define OLED_RESET     -1   // Pin controlling OLED reset (-1 for none)
-#define SCREEN_ADDRESS 0x3C // I2C address of the display controller
 
 #define COMMAND_EVENT_REFRESH            0x00000001 // Command flag requesting a page refresh/redraw
 #define COMMAND_EVENT_BUTTON_RELEASED    0x00000002 // Command flag signaling that the button has been released
@@ -102,7 +102,7 @@ bool PanelManager::Init()
 {
     displayAvailable = false;
 
-    if (display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS))
+    if (display.begin(SSD1306_SWITCHCAPVCC, DISPLAY_ADDRESS))
     {
         displayAvailable = true;
 
