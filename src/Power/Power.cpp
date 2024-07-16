@@ -267,7 +267,7 @@ CONSOLE.print("Initializing power: ");
     power->setPowerKeyPressOffTime(XPOWERS_POWEROFF_4S);
 
     powerEventGroup = xEventGroupCreate();
-    xTaskCreate(StaticProcessingTask_AXP, "PowerTask", 16384, (void *)this, 6, &powerTaskHandle);
+    xTaskCreate(StaticProcessingTask, "PowerTask", 16384, (void *)this, 6, &powerTaskHandle);
 
     pinMode(PMU_IRQ, INPUT /* INPUT_PULLUP */);
     attachInterrupt(PMU_IRQ, StaticIrqCallback, FALLING);
