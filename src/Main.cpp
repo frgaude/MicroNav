@@ -67,7 +67,7 @@ void ConversionLoop();
 void MenuDebug1();
 void MenuDebug2();
 
-void startWifi(); //TODO FGA: move to proper place...
+void startWifi(); //fga todo: move to proper place...
 
 /***************************************************************************/
 /*                               Globals                                   */
@@ -121,14 +121,14 @@ void setup()
     // Check connection to SX1276
     if (!gRfDriver.Init(&gRxMessageFifo))
     {
+        CONSOLE.println("Failed");
+        CONSOLE.println("System Halted");
         while (1)
         {
-            CONSOLE.println("Failed");
-            CONSOLE.println("System Halted");
             delay(1000);
         }
     }
-    CONSOLE.println("OK");
+    CONSOLE.println("Success");
 
     CONSOLE.print("Initializing navigation compass ... ");
     if (!gNavCompass.Init())
