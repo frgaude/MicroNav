@@ -31,9 +31,12 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
-// Using AXP2101
-#define  XPOWERS_CHIP_AXP2101
 #include "XPowersLib.h"
+// #define  XPOWERS_CHIP_AXP2101
+#define  XPOWERS_CHIP_AXP192
+//typedef XPowersAXP2101 XPowersPMU;
+typedef XPowersAXP192 XPowersPMU;
+
 #include <Arduino.h>
 
 /***************************************************************************/
@@ -78,6 +81,8 @@ class Power
 
   private:
     XPowersPMU         AXPDriver;
+    XPowersLibInterface *power = NULL;
+
     PowerStatus_t      powerStatus;
     TaskHandle_t       powerTaskHandle;
     EventGroupHandle_t powerEventGroup;
